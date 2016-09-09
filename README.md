@@ -227,6 +227,7 @@ Clone github repo **https://github.com/nicehash/cpuminer-opt**.
 Open **C:\bin\GNUstep\msys\1.0\msys.bat** and cd to cloned repo path.
 Run the following commands:
   - **PATH="/c/bin/GNUstep/msys/opt/windows_64/bin/:$PATH"** (or the path you have installed GNUstep) to add opt/windows_64 to path.
+  - run **./autogen**
   - **CFLAGS="-O3 -march=native -mtune=native -Wall" CXXFLAGS="$CFLAGS -std=gnu++11 -flto -fpermissive" ./configure --with-curl** to configure project
   - **make** wait for **cpuminer.exe** to build
   - the built **cpuminer.exe** binary requires libraries (copy them from or set PATH to **C:\bin\GNUstep\msys\opt\windows_64\bin** when running):
