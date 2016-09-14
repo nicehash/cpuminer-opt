@@ -199,7 +199,6 @@ int scanhash_qubit(int thr_id, struct work *work,
 
 bool register_qubit_algo( algo_gate_t* gate )
 {
-  gate->aes_ni_optimized = true;
   gate->optimizations = SSE2_OPT | AES_OPT | AVX_OPT | AVX2_OPT;
   init_qubit_ctx();
   gate->scanhash = (void*)&scanhash_qubit;

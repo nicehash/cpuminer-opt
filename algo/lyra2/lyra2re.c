@@ -116,7 +116,6 @@ void lyra2re_set_target ( struct work* work, double job_diff )
 bool register_lyra2re_algo( algo_gate_t* gate )
 {
   init_lyra2re_ctx();
-  gate->aes_ni_optimized = true;
   gate->optimizations = SSE2_OPT | AES_OPT | AVX_OPT | AVX2_OPT;
   gate->scanhash   = (void*)&scanhash_lyra2re;
   gate->hash       = (void*)&lyra2re_hash;

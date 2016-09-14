@@ -129,6 +129,7 @@ int scanhash_hodl_wolf( int threadNumber, struct work* work, uint32_t max_nonce,
     *hashes_done = CollisionCount;
     return(0);
 
+
 #else  // no AVX
 
     uint32_t *pdata = work->data;

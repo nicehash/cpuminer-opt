@@ -278,7 +278,6 @@ int scanhash_x11evo( int thr_id, struct work* work, uint32_t max_nonce,
 
 bool register_x11evo_algo( algo_gate_t* gate )
 {
-  gate->aes_ni_optimized = true;
   gate->optimizations = SSE2_OPT | AES_OPT | AVX_OPT | AVX2_OPT;
   gate->scanhash  = (void*)&scanhash_x11evo;
   gate->hash      = (void*)&x11evo_hash;

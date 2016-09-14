@@ -102,145 +102,20 @@ void null_hash_alt()
   applog(LOG_WARNING,"SWERR: null_hash_alt unsafe null function");
 };
 
-// Common target functions, default usually listed first.
-
-void std_wait_for_diff()
-{
-   while ( time(NULL) >= g_work_time + 120 )
-     sleep(1);
-}
-
-uint32_t* std_get_nonceptr( uint32_t *work_data )
-{
-//   return &work_data[ algo_gate.nonce_index ];
-   return work_data + algo_gate.nonce_index;
-}
-uint32_t* jr2_get_nonceptr( uint32_t *work_data )
-{
-   // nonce is misaligned, use byte offset
-   return (uint32_t*) ( ((uint8_t*) work_data) + algo_gate.nonce_index );
-}
-
-void std_init_nonce( struct work* work, struct work* g_work, int thr_id )
-{
-   uint32_t *nonceptr = algo_gate.get_nonceptr( work->data );
-   if ( memcmp( work->data, g_work->data, algo_gate.work_cmp_size ) )
-   {
-       work_free( work );
-       work_copy( work, g_work );
-       *nonceptr = 0xffffffffU / opt_n_threads * thr_id;
-       if ( opt_randomize )
-             *nonceptr += ( (rand() *4 ) & UINT32_MAX ) / opt_n_threads;
-   }
-   else
-       ++(*nonceptr);
-}
-
-void jr2_init_nonce( struct work* work, struct work* g_work, int thr_id )
-{
-   uint32_t *nonceptr = algo_gate.get_nonceptr( work->data );
-   // byte data[ 0..38, 43..75 ], skip over misaligned nonce [39..42]
-   if ( memcmp( work->data, g_work->data, algo_gate.nonce_index )
-     || memcmp( ((uint8_t*) work->data)   + JR2_WORK_CMP_INDEX_2,
-                ((uint8_t*) g_work->data) + JR2_WORK_CMP_INDEX_2,
-                                                    JR2_WORK_CMP_SIZE_2 ) )
-   {
-       work_free( work );
-       work_copy( work, g_work );
-       *nonceptr = ( *nonceptr & 0xff000000U ) +
-                      ( 0xffffffU / opt_n_threads * thr_id );
-//       *nonceptr = 0xffffffffU / opt_n_threads * thr_id;
-//       if ( opt_randomize )
-//             *nonceptr += ( (rand() *4 ) & UINT32_MAX ) / opt_n_threads;
-   }
-   else
-       ++(*nonceptr);
-}
-
-// pick your favorite or define your own
-int64_t get_max64_0x1fffffLL() { return 0x1fffffLL; } // default
-int64_t get_max64_0x40LL()     { return 0x40LL;     }
-int64_t get_max64_0x3ffff()    { return 0x3ffff;    }
-int64_t get_max64_0x3fffffLL() { return 0x3fffffLL; }
-int64_t get_max64_0x1ffff()    { return 0x1ffff;    }
-
-void sha256d_gen_merkle_root( char* merkle_root, struct stratum_ctx* sctx )
-{
-  sha256d(merkle_root, sctx->job.coinbase, (int) sctx->job.coinbase_size);
-  for ( int i = 0; i < sctx->job.merkle_count; i++ )
-  {
-     memcpy( merkle_root + 32, sctx->job.merkle[i], 32 );
-     sha256d( merkle_root, merkle_root, 64 );
-  }
-}
-void SHA256_gen_merkle_root( char* merkle_root, struct stratum_ctx* sctx )
-{
-  SHA256( sctx->job.coinbase, (int)sctx->job.coinbase_size, merkle_root );
-  for ( int i = 0; i < sctx->job.merkle_count; i++ )
-  {
-     memcpy( merkle_root + 32, sctx->job.merkle[i], 32 );
-     sha256d( merkle_root, merkle_root, 64 );
-  }
-}
-
-void std_set_target( struct work* work, double job_diff )
-{
-   work_set_target( work, job_diff / opt_diff_factor );
-}
-// most scrypt based algos
-void scrypt_set_target( struct work* work, double job_diff )
-{
-   work_set_target( work, job_diff / (65536.0 * opt_diff_factor) );
-}
-
-// set_work_data_endian target, default is do_nothing
-void swab_work_data( struct work *work )
-{
-   int nonce_index = algo_gate.nonce_index;
-   for ( int i = 0; i < nonce_index; i++ )
-      work->data[i] = swab32( work->data[i] );
-}
-
-void std_build_extraheader( struct work* work, struct stratum_ctx* sctx )
-{
-   work->data[ algo_gate.ntime_index ] = le32dec(sctx->job.ntime);
-   work->data[ algo_gate.nbits_index ] = le32dec(sctx->job.nbits);
-   work->data[20] = 0x80000000;
-   work->data[31] = 0x00000280;
-}
-
-void std_calc_network_diff( struct work* work )
-{
-   // sample for diff 43.281 : 1c05ea29
-   // todo: endian reversed on longpoll could be zr5 specific...
-   int nbits_index = algo_gate.nbits_index;
-   uint32_t nbits = have_longpoll ? work->data[ nbits_index] 
-                                  : swab32( work->data[ nbits_index ] );
-   uint32_t bits  = ( nbits & 0xffffff );
-   int16_t  shift = ( swab32(nbits) & 0xff ); // 0x1c = 28
-   int m;
-   net_diff = (double)0x0000ffff / (double)bits;
-   for ( m = shift; m < 29; m++ )
-       net_diff *= 256.0;
-   for ( m = 29; m < shift; m++ )
-       net_diff /= 256.0;
-}
-
 void init_algo_gate( algo_gate_t* gate )
 {
+   gate->miner_thread_init       = (void*)&return_true;
    gate->scanhash                = (void*)&null_scanhash;
    gate->hash                    = (void*)&null_hash;
    gate->hash_alt                = (void*)&null_hash_alt;
    gate->hash_suw                = (void*)&null_hash_suw;
-   gate->gen_work_now            = (void*)&std_gen_work_now;
-   gate->init_nonce              = (void*)&std_init_nonce;
+   gate->get_new_work            = (void*)&std_get_new_work;
    gate->get_nonceptr            = (void*)&std_get_nonceptr;
    gate->display_extra_data      = (void*)&do_nothing;
    gate->wait_for_diff           = (void*)&std_wait_for_diff;
    gate->get_max64               = (void*)&get_max64_0x1fffffLL;
-   gate->alloc_scratchbuf        = (void*)&return_true;
    gate->gen_merkle_root         = (void*)&sha256d_gen_merkle_root;
-   gate->stratum_gen_work        = (void*)&std_stratum_gen_work;
+   gate->stratum_get_g_work      = (void*)&std_stratum_get_g_work;
    gate->build_stratum_request   = (void*)&std_le_build_stratum_request;
    gate->set_target              = (void*)&std_set_target;
    gate->submit_getwork_result   = (void*)&std_submit_getwork_result;
@@ -252,7 +127,6 @@ void init_algo_gate( algo_gate_t* gate )
    gate->do_this_thread          = (void*)&return_true;
    gate->longpoll_rpc_call       = (void*)&std_longpoll_rpc_call;
    gate->stratum_handle_response = (void*)&std_stratum_handle_response;
-   gate->aes_ni_optimized        = false;
    gate->optimizations           = SSE2_OPT;
    gate->ntime_index             = STD_NTIME_INDEX;
    gate->nbits_index             = STD_NBITS_INDEX;
@@ -275,9 +149,9 @@ bool register_algo_gate( int algo, algo_gate_t *gate )
    switch (algo)
    {
      //case ALGO_ARGON2:      register_argon2_algo     ( gate ); break;
-     case ALGO_AXIOM:       register_axiom_algo      ( gate ); break;
-     //case ALGO_BASTION:     register_bastion_algo    ( gate ); break;
-     /*case ALGO_BLAKE:       register_blake_algo      ( gate ); break;
+     //case ALGO_AXIOM:       register_axiom_algo      ( gate ); break;
+     /*case ALGO_BASTION:     register_bastion_algo    ( gate ); break;
+     case ALGO_BLAKE:       register_blake_algo      ( gate ); break;
      case ALGO_BLAKECOIN:   register_blakecoin_algo  ( gate ); break;
      case ALGO_BLAKE2S:     register_blake2s_algo    ( gate ); break;
      case ALGO_C11:         register_c11_algo        ( gate ); break;
@@ -294,7 +168,7 @@ bool register_algo_gate( int algo, algo_gate_t *gate )
      case ALGO_LBRY:        register_lbry_algo       ( gate ); break;
      case ALGO_LUFFA:       register_luffa_algo      ( gate ); break;*/
      case ALGO_LYRA2RE:     register_lyra2re_algo    ( gate ); break;
-    /* case ALGO_LYRA2REV2:   register_lyra2rev2_algo  ( gate ); break;
+     /*case ALGO_LYRA2REV2:   register_lyra2rev2_algo  ( gate ); break;
      case ALGO_M7M:         register_m7m_algo        ( gate ); break;
      case ALGO_MYR_GR:      register_myriad_algo     ( gate ); break;
      case ALGO_NEOSCRYPT:   register_neoscrypt_algo  ( gate ); break;
@@ -303,10 +177,10 @@ bool register_algo_gate( int algo, algo_gate_t *gate )
      case ALGO_PLUCK:       register_pluck_algo      ( gate ); break;
      case ALGO_QUARK:       register_quark_algo      ( gate ); break;
      case ALGO_QUBIT:       register_qubit_algo      ( gate ); break;
-     case ALGO_SCRYPT:      register_scrypt_algo     ( gate ); break;*/
+     case ALGO_SCRYPT:      register_scrypt_algo     ( gate ); break;
      case ALGO_SCRYPTJANE:  register_scryptjane_algo ( gate ); break;
      case ALGO_SHA256D:     register_sha256d_algo    ( gate ); break;
-    /* case ALGO_SHAVITE3:    register_shavite_algo    ( gate ); break;
+     case ALGO_SHAVITE3:    register_shavite_algo    ( gate ); break;
      case ALGO_SKEIN:       register_skein_algo      ( gate ); break;
      case ALGO_SKEIN2:      register_skein2_algo     ( gate ); break;
      case ALGO_S3:          register_s3_algo         ( gate ); break;
@@ -332,7 +206,7 @@ bool register_algo_gate( int algo, algo_gate_t *gate )
   // ensure required functions were defined.
   if (  gate->scanhash == (void*)&null_scanhash )
   {
-    applog(LOG_ERR, "Fail: Required algo_gate functions undefined\n");
+    applog(LOG_ERR, "FAIL: Required algo_gate functions undefined\n");
     return false;
   }
   return true;
@@ -342,10 +216,9 @@ bool register_algo_gate( int algo, algo_gate_t *gate )
 bool register_json_rpc2( algo_gate_t *gate )
 {
   gate->wait_for_diff           = (void*)&do_nothing;
-  gate->gen_work_now            = (void*)&jr2_gen_work_now;
-  gate->init_nonce              = (void*)&jr2_init_nonce;
+  gate->get_new_work            = (void*)&jr2_get_new_work;
   gate->get_nonceptr            = (void*)&jr2_get_nonceptr;
-  gate->stratum_gen_work        = (void*)&jr2_stratum_gen_work;
+  gate->stratum_get_g_work      = (void*)&jr2_stratum_get_g_work;
   gate->build_stratum_request   = (void*)&jr2_build_stratum_request;
   gate->submit_getwork_result   = (void*)&jr2_submit_getwork_result;
   gate->longpoll_rpc_call       = (void*)&jr2_longpoll_rpc_call;
@@ -353,6 +226,7 @@ bool register_json_rpc2( algo_gate_t *gate )
   gate->stratum_handle_response = (void*)&jr2_stratum_handle_response;
   gate->nonce_index             = JR2_NONCE_INDEX;
   jsonrpc_2 = true;   // still needed
+  opt_extranonce = false;
   return true;
  }
 

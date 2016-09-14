@@ -100,8 +100,7 @@ int scanhash_cryptonight( int thr_id, struct work *work, uint32_t max_nonce,
 bool register_cryptonight_algo( algo_gate_t* gate )
 {
   register_json_rpc2( gate );
-  gate->aes_ni_optimized = true;
-  gate->optimizations = SSE2_OPT | AES_OPT | AVX_OPT;
+  gate->optimizations = SSE2_OPT | AES_OPT;
   gate->scanhash         = (void*)&scanhash_cryptonight;
   gate->hash             = (void*)&cryptonight_hash;
   gate->hash_suw         = (void*)&cryptonight_hash_suw;  

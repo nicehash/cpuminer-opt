@@ -1414,6 +1414,7 @@ bool stratum_authorize(struct stratum_ctx *sctx, const char *user, const char *p
 		json_t *job_val = json_object_get(res_val, "job");
 		pthread_mutex_lock(&sctx->work_lock);
 		if(job_val) rpc2_job_decode(job_val, &sctx->work);
+                sctx->job.job_id = strdup(sctx->work.job_id);
 		pthread_mutex_unlock(&sctx->work_lock);
 	}
 

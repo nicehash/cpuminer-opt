@@ -45,23 +45,20 @@ void hodl_le_build_stratum_request( char* req, struct work* work,
    free( xnonce2str );
 }
 
-void hodl_build_extraheader( struct work* work, struct stratum_ctx *sctx )
+void hodl_build_extraheader( struct work* g_work, struct stratum_ctx *sctx )
 {
-   work->data[ algo_gate.ntime_index ] = le32dec( sctx->job.ntime );
-   work->data[ algo_gate.nbits_index ] = le32dec( sctx->job.nbits );
-   work->data[22] = 0x80000000;
-   work->data[31] = 0x00000280;
+   g_work->data[ algo_gate.ntime_index ] = le32dec( sctx->job.ntime );
+   g_work->data[ algo_gate.nbits_index ] = le32dec( sctx->job.nbits );
+   g_work->data[22] = 0x80000000;
+   g_work->data[31] = 0x00000280;
 }
 
 // called only by thread 0, saves a backup of g_work
-void hodl_init_nonce( struct work* work, struct work* g_work)
+void hodl_get_new_work( struct work* work, struct work* g_work)
 {
-   if ( memcmp( hodl_work.data, g_work->data, algo_gate.work_cmp_size ) )
-   {
-      work_free( &hodl_work );
-      work_copy( &hodl_work, g_work );
-   }
-   hodl_work.data[ algo_gate.nonce_index ] = ( clock() + rand() ) % 9999;
+     work_free( &hodl_work );
+     work_copy( &hodl_work, g_work );
+     hodl_work.data[ algo_gate.nonce_index ] = ( clock() + rand() ) % 9999;
 }
 
 // called by every thread, copies the backup to each thread's work.
@@ -99,15 +96,15 @@ int hodl_scanhash( int thr_id, struct work* work, uint32_t max_nonce,
 bool register_hodl_algo( algo_gate_t* gate )
 {
   pthread_barrier_init( &hodl_barrier, NULL, opt_n_threads );
-  gate->aes_ni_optimized      = true;
   gate->optimizations         = SSE2_OPT | AES_OPT | AVX_OPT | AVX2_OPT;
   gate->scanhash              = (void*)&hodl_scanhash;
-  gate->init_nonce            = (void*)&hodl_init_nonce;
+  gate->get_new_work          = (void*)&hodl_get_new_work;
   gate->set_target            = (void*)&hodl_set_target;
   gate->build_stratum_request = (void*)&hodl_le_build_stratum_request;
   gate->build_extraheader     = (void*)&hodl_build_extraheader;
   gate->resync_threads        = (void*)&hodl_resync_threads;
   gate->do_this_thread        = (void*)&hodl_do_this_thread;
+  gate->work_cmp_size         = 76;
   hodl_scratchbuf = (unsigned char*)malloc( 1 << 30 );
   return ( hodl_scratchbuf != NULL );
 }

@@ -380,7 +380,6 @@ int scanhash_x17(int thr_id, struct work *work,
 
 bool register_x17_algo( algo_gate_t* gate )
 {
-  gate->aes_ni_optimized = true;
   gate->optimizations = SSE2_OPT | AES_OPT | AVX_OPT | AVX2_OPT;
   init_x17_ctx();
   gate->scanhash = (void*)&scanhash_x17;

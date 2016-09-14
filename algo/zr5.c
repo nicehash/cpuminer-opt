@@ -190,31 +190,25 @@ int scanhash_zr5( int thr_id, struct work *work,
   return 0;
 }
 
-void zr5_init_nonce( struct work* work, struct work* g_work, int thr_id )
+void zr5_get_new_work( struct work* work, struct work* g_work, int thr_id,
+                       uint32_t* end_nonce_ptr, bool clean_job )
 {
    // ignore POK in first word
 // const int nonce_i = 19;
    const int wkcmp_sz = 72;  // (19-1) * sizeof(uint32_t)
    uint32_t *nonceptr = algo_gate.get_nonceptr( work->data );
-   if ( memcmp( &work->data[1], &g_work->data[1], wkcmp_sz ) )
+   if ( memcmp( &work->data[1], &g_work->data[1], wkcmp_sz )
+      && ( clean_job || ( *nonceptr >= *end_nonce_ptr ) ) )
    {
-       work_free( work );
-       work_copy( work, g_work );
-       *nonceptr = 0xffffffffU / opt_n_threads * thr_id;
-       if ( opt_randomize )
-          *nonceptr += ( (rand() *4 ) & UINT32_MAX ) / opt_n_threads;
+      work_free( work );
+      work_copy( work, g_work );
+      *nonceptr = ( 0xffffffffU / opt_n_threads ) * thr_id;
+      if ( opt_randomize )
+         *nonceptr += ( (rand() *4 ) & UINT32_MAX ) / opt_n_threads;
+      *end_nonce_ptr = ( 0xffffffffU / opt_n_threads ) * (thr_id+1) - 0x20;
    }
    else
        ++(*nonceptr);
-}
-
-bool zr5_gen_work_now( int thr_id, struct work *work, struct work *g_work )
-{
-   uint32_t end_nonce = 0xffffffffU / opt_n_threads * (thr_id + 1) - 0x20;
-   // ignore POK in first word
-   const int wkcmp_sz = 72;  // (19-1) * sizeof(uint32_t)
-   return ( *( algo_gate.get_nonceptr( work->data ) ) >= end_nonce )
-            && !( memcmp( &work->data[1], &g_work->data[1], wkcmp_sz ) );
 }
 
 int64_t zr5_get_max64 ()
@@ -231,11 +225,9 @@ void zr5_display_pok( struct work* work )
 
 bool register_zr5_algo( algo_gate_t* gate )
 {
-    gate->aes_ni_optimized      = true;
-    gate->optimizations = SSE2_OPT | AES_OPT | AVX_OPT;
+    gate->optimizations = SSE2_OPT | AES_OPT;
     init_zr5_ctx();
-    gate->init_nonce            = (void*)&zr5_init_nonce;
-    gate->gen_work_now          = (void*)&zr5_gen_work_now;
+    gate->get_new_work          = (void*)&zr5_get_new_work;
     gate->scanhash              = (void*)&scanhash_zr5;
     gate->hash                  = (void*)&zr5hash;
     gate->hash_alt              = (void*)&zr5hash;
@@ -244,6 +236,7 @@ bool register_zr5_algo( algo_gate_t* gate )
     gate->build_stratum_request = (void*)&std_be_build_stratum_request;
     gate->set_work_data_endian  = (void*)&swab_work_data;
     gate->work_data_size        = 80;
+    gate->work_cmp_size         = 72;
     return true;
 };
 

@@ -47,6 +47,8 @@ static const uint32_t finalblk[16] = {
 	0x00000001, 0x80000000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x00000620
 };
 
+static __thread char *scratchbuf;
+
 static inline void HMAC_SHA256_80_init(const uint32_t *key,
 	uint32_t *tstate, uint32_t *ostate)
 {
@@ -694,7 +696,7 @@ static void scrypt_1024_1_1_256_24way(const uint32_t *input,
 #endif /* HAVE_SCRYPT_6WAY */
 
 extern int scanhash_scrypt( int thr_id, struct work *work, uint32_t max_nonce,
-             uint64_t *hashes_done, unsigned char* scratchbuf )
+                            uint64_t *hashes_done )
 {
         uint32_t *pdata = work->data;
         uint32_t *ptarget = work->target;
@@ -772,19 +774,22 @@ int64_t scrypt_get_max64()
      return max64;
 }
 
-bool scrypt_alloc_scratchbuf( char** scratchbuf )
+bool scrypt_miner_thread_init()
 {
-  *scratchbuf = scrypt_buffer_alloc( opt_scrypt_n );
-  return  NULL == *scratchbuf ? false : true;
+ scratchbuf = scrypt_buffer_alloc( opt_scrypt_n );  
+ if ( scratchbuf )
+   return true;
+ applog( LOG_ERR, "Scrypt buffer allocation failed" );
+ return false; 
 }
- 
+
 bool register_scrypt_algo( algo_gate_t* gate )
 {
+  gate->miner_thread_init =(void*)&scrypt_miner_thread_init;
   gate->scanhash         = (void*)&scanhash_scrypt;
   gate->hash             = (void*)&scrypt_1024_1_1_256_24way;
   gate->hash_alt         = (void*)&scrypt_1024_1_1_256_24way;
   gate->set_target       = (void*)&scrypt_set_target;
-  gate->alloc_scratchbuf = (void*)&scrypt_alloc_scratchbuf;
   gate->get_max64        = (void*)&scrypt_get_max64;
   if ( opt_nfactor == 0 )
     opt_nfactor = 6;

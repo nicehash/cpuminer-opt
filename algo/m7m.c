@@ -616,7 +616,6 @@ void m7m_reverse_endian( struct work *work )
 
 bool register_m7m_algo( algo_gate_t *gate )
 {
-  gate->aes_ni_optimized      = true;
   gate->optimizations = SSE2_OPT | AES_OPT | AVX_OPT;
   init_m7m_ctx();
   gate->scanhash              = (void*)scanhash_m7m_hash;

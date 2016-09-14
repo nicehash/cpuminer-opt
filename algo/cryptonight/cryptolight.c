@@ -354,8 +354,8 @@ int scanhash_cryptolight(int thr_id, struct work *work,
 
 bool register_cryptolight_algo( algo_gate_t* gate )
 {
-  algo_not_tested();
   register_json_rpc2( gate );
+  gate->optimizations = SSE2_OPT | AES_OPT;
   gate->scanhash  = (void*)&scanhash_cryptolight;
   gate->hash      = (void*)&cryptolight_hash;
   gate->hash_suw  = (void*)&cryptolight_hash; 

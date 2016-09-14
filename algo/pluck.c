@@ -63,6 +63,8 @@
 #define _VECTOR
 #endif
 
+static __thread char *scratchbuf;
+
 #ifdef OPT_COMPATIBLE
 static void _VECTOR xor_salsa8(__m128i B[4], const __m128i Bx[4], int i)
 {
@@ -444,7 +446,7 @@ void pluck_hash(uint32_t *hash, const uint32_t *data, uchar *hashbuffer, const i
 }
 
 int scanhash_pluck(int thr_id, struct work *work, uint32_t max_nonce,
-        uint64_t *hashes_done, unsigned char *scratchbuf  )
+        uint64_t *hashes_done  )
 {
         uint32_t *pdata = work->data;
         uint32_t *ptarget = work->target;
@@ -490,19 +492,22 @@ void pluck_set_target( struct work* work, double job_diff )
  work_set_target( work, job_diff / (65536.0 * opt_diff_factor) );
 }
 
-bool pluck_alloc_scratchbuf( char** scratchbuf )
+bool pluck_miner_thread_init( )
 { 
-  *scratchbuf = malloc( 128 * 1024 ); 
-  return NULL == *scratchbuf ? false : true;
+  scratchbuf = malloc( 128 * 1024 ); 
+  if ( scratchbuf )
+    return true;
+  applog( LOG_ERR, "Pluck buffer allocation failed");
+  return false;
 }
 
 bool register_pluck_algo( algo_gate_t* gate )
 {
   algo_not_tested();
+  gate->miner_thread_init = (void*)& pluck_miner_thread_init;
   gate->scanhash         = (void*)&scanhash_pluck;
   gate->hash             = (void*)&pluck_hash;
   gate->set_target       = (void*)&scrypt_set_target;
-  gate->alloc_scratchbuf = (void*)&pluck_alloc_scratchbuf;
   gate->get_max64        = (void*)&pluck_get_max64;
   return true;
 };

@@ -18,6 +18,7 @@
 #define DECRED_NONCE_INDEX 35
 #define DECRED_XNONCE_INDEX 36
 #define DECRED_DATA_SIZE 192
+#define DECRED_WORK_COMPARE_SIZE 140
 
 static __thread sph_blake256_context blake_mid;
 static __thread bool ctx_midstate_done = false;
@@ -106,6 +107,13 @@ uint32_t *decred_get_nonceptr( uint32_t *work_data )
 {
    return &work_data[ DECRED_NONCE_INDEX ];
 }
+
+// does decred need a custom stratum_get_g_work to fix nicehash
+//  bad extranonce2 size?
+// 
+// does decred need a custom init_nonce?
+// does it need to increment nonce, seems not because gen_work_now always
+// returns true
 
 void decred_calc_network_diff( struct work* work )
 {
@@ -217,10 +225,10 @@ bool decred_prevent_dupes( struct work* work, struct stratum_ctx* stratum,
 
 bool register_decred_algo( algo_gate_t* gate )
 {
+  gate->optimizations         = SSE2_OPT;
   gate->scanhash              = (void*)&scanhash_decred;
   gate->hash                  = (void*)&decred_hash;
   gate->hash_alt              = (void*)&decred_hash;
-  gate->gen_work_now          = (void*)&return_true;
   gate->get_nonceptr          = (void*)&decred_get_nonceptr;
   gate->get_max64             = (void*)&get_max64_0x3fffffLL;
   gate->display_extra_data    = (void*)&decred_decode_extradata;
@@ -232,6 +240,7 @@ bool register_decred_algo( algo_gate_t* gate )
   gate->ntime_index           = DECRED_NTIME_INDEX;
   gate->nonce_index           = DECRED_NONCE_INDEX;
   gate->work_data_size        = DECRED_DATA_SIZE;
+  gate->work_cmp_size         = DECRED_WORK_COMPARE_SIZE; 
   allow_mininginfo            = false;
   have_gbt                    = false;
   return true;
