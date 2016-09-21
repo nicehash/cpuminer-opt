@@ -12,3 +12,4 @@ make -j8
 strip -p --strip-debug --strip-unneeded cpuminer.exe
 
 mv cpuminer.exe cpuminer_opt_SSE2.exe
+

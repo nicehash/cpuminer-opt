@@ -230,7 +230,7 @@ Open **C:\bin\GNUstep\msys\1.0\msys.bat** and cd to cloned repo path.
 Run the following commands:
   - **PATH="/c/bin/GNUstep/msys/opt/windows_64/bin/:$PATH"** (or the path you have installed GNUstep) to add opt/windows_64 to path.
   - run **./autogen**
-  - use one of the scripts **mingw64.sh** (build native extension for CPU), **mingw64aes.sh** for AES support, **mingw64sse2.sh** for SSE2 support, **mingw64avx.sh** for AVX support and **mingw64avx2.sh** for AVX2 support
+  - use one of the scripts **mingw64.sh** (build native extension for CPU), **mingw64aes.sh** for AES support, **mingw64sse2.sh** for SSE2 support, **mingw64avx(+aes).sh** for AVX(_AES) support and **mingw64avx2(+aes).sh** for AVX2(_AES) support
   - the built **cpuminer.exe** binary requires libraries (copy them from or set PATH to **C:\bin\GNUstep\msys\opt\windows_64\bin** when running):
     - libcrypto.dll
     - libcrypto-1.0.0.dll
