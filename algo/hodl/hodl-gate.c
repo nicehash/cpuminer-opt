@@ -12,9 +12,9 @@
 
 static struct work hodl_work;
 
-//#if (defined(__APPLE__) && !_POSIX_BARRIERS)
+#ifdef __APPLE__
 #include "pthread-barrier.h"
-//#endif
+#endif
 
 pthread_barrier_t hodl_barrier;
 
