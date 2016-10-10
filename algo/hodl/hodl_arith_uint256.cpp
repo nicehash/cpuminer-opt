@@ -3,6 +3,10 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#if ((defined(_WIN64) || defined(__WINDOWS__) || defined(__APPLE__)))
+#include "hodl-endian.h"
+#endif
+
 #include "hodl_arith_uint256.h"
 #include "hodl_uint256.h"
 #include "utilstrencodings.h"

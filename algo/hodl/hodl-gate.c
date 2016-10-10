@@ -12,6 +12,10 @@
 
 static struct work hodl_work;
 
+//#if (defined(__APPLE__) && !_POSIX_BARRIERS)
+#include "pthread-barrier.h"
+//#endif
+
 pthread_barrier_t hodl_barrier;
 
 // All references to this buffer are local to this file, so no args

@@ -1,6 +1,8 @@
 #ifndef HODL_BYTESWAP_H
 #define HODL_BYTESWAP_H 1
 
+#include <stdint.h>
+
 #define __bswap_constant_16(x) \
      ((unsigned short int) ((((x) >> 8) & 0xff) | (((x) & 0xff) << 8)))
 
