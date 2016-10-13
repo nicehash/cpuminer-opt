@@ -1,7 +1,7 @@
 #ifndef HODL_BYTESWAP_H
 #define HODL_BYTESWAP_H 1
 
-#ifdef __APPLE__
+#if ((defined(_WIN64) || defined(__WINDOWS__) || defined(__APPLE__)))
 #include <stdint.h>
 #endif
 
