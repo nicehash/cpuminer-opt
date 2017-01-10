@@ -8,7 +8,7 @@
 #include "smmintrin.h"
 
 #include "sha512-avx.h"
-#if ((defined(_WIN64) || defined(__WINDOWS__)))
+#if ((defined(_WIN64) || defined(__WINDOWS__) || defined(__APPLE__)))
 #include "hodl-endian.h"
 #endif
 

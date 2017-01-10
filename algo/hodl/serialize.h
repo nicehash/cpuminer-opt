@@ -6,7 +6,7 @@
 #ifndef BITCOIN_SERIALIZE_H
 #define BITCOIN_SERIALIZE_H
 
-#if ((defined(_WIN64) || defined(__WINDOWS__)))
+#if ((defined(_WIN64) || defined(__WINDOWS__) || defined(__APPLE__)))
 #include "hodl-endian.h"
 #endif
 
