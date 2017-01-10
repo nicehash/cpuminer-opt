@@ -117,7 +117,7 @@ static void cpustatus(int thr_id)
 		cpu->thr_id = thr_id;
 		cpu->khashes = thr_hashrates[thr_id] / 1000.0; //todo: stats_get_speed(thr_id, 0.0) / 1000.0;
 
-		snprintf(buf, sizeof(buf), "CPU=%d;KHS=%.2f|", thr_id, cpu->khashes);
+		snprintf(buf, sizeof(buf), "{\"CPU\":\"%d\",\"KHS\":\"%.2f\"}", thr_id, cpu->khashes);
 
 		// append to buffer
 		strcat(buffer, buf);
@@ -147,15 +147,31 @@ static char *getsummary(char *params)
 	get_currentalgo(algo, sizeof(algo));
 
 	*buffer = '\0';
-	sprintf(buffer, "NAME=%s;VER=%s;API=%s;"
-		"ALGO=%s;CPUS=%d;KHS=%.2f;ACC=%d;REJ=%d;"
-		"ACCMN=%.3f;DIFF=%.6f;TEMP=%.1f;FAN=%d;FREQ=%d;"
-		"UPTIME=%.0f;TS=%u|",
+	sprintf(buffer, "{\"name\":\"%s\",\"ver\":\"%s\",\"api\":\"%s\","
+		"\"algo\":\"%s\",\"cpus\":\"%d\",\"KHS\":\"%.2f\",\"acc\":\"%d\",\"rej\":\"%d\","
+		"\"accmn\":\"%.3f\",\"diff\":\"%.6f\",\"temp\":\"%.1f\",\"fan\":\"%d\",\"freq\":\"%d\","
+		"\"uptime\":\"%.0f\",\"ts\":\"%u\"}",
 		PACKAGE_NAME, PACKAGE_VERSION, APIVERSION,
 		algo, opt_n_threads, (double)global_hashrate / 1000.0,
 		accepted_count, rejected_count, accps, net_diff > 0. ? net_diff : stratum_diff,
 		cpu.cpu_temp, cpu.cpu_fan, cpu.cpu_clock,
 		uptime, (uint32_t) ts);
+	return buffer;
+}
+
+/**
+* Returns miner global infos
+*/
+static char *gethashrate(char *params)
+{
+	double khashes = 0;
+        for (int i = 0; i < opt_n_threads; ++i) {
+                khashes = khashes + thr_hashrates[i];
+        }
+
+	*buffer = '\0';
+	sprintf(buffer, "{\"KHS\":\"%.2f\"}",
+		khashes / 1000.0);
 	return buffer;
 }
 
@@ -215,6 +231,7 @@ struct CMDS {
 } cmds[] = {
 	{ "summary", getsummary },
 	{ "threads", getthreads },
+	{ "hashrate", gethashrate },
 	/* remote functions */
 	{ "seturl", remote_seturl },
 	{ "quit",    remote_quit },
